@@ -1,0 +1,55 @@
+===================================
+rpt_dailystatistics_after_update
+
+BEGIN
+update rpt_summary set complete_ratio=
+(select (sum(nb_fail)+sum(nb_noneed)+sum(nb_pass)) from rpt_dailystatistics 
+where rpt_dailystatistics.release_id= new.release_id 
+and rpt_dailystatistics.testset_id in (select testset_id from rpt_testscope 
+where testsuite_id=(select testsuite_id from rpt_testscope where id= new.scope_id)))/
+(select sum(nb_total) from rpt_testset where id in (select testset_id from rpt_testscope) 
+and testsuite_id=(select testsuite_id from rpt_testscope where id= new.scope_id)),update_date=current_date()
+where rpt_summary.release_id= new.release_id 
+and rpt_summary.testsuite_id=(select testsuite_id from rpt_testscope where id= new.scope_id);
+END
+
+===================================
+rpt_testscope_after_insert
+
+BEGIN
+insert into rpt_dailystatistics(release_id,scope_id,update_by,testset_id,update_date) values(new.release_id, new.id, new.user_id, new.testset_id,current_date());
+insert into rpt_summary(release_id,testsuite_id,update_date) values(new.release_id, new.testsuite_id, current_date()) on duplicate key update update_date=current_date();
+
+update rpt_summary set complete_ratio=
+(select (sum(nb_fail)+sum(nb_noneed)+sum(nb_pass)) from rpt_dailystatistics 
+where rpt_dailystatistics.release_id= new.release_id 
+and rpt_dailystatistics.testset_id in (select testset_id from rpt_testscope 
+where testsuite_id= new.testsuite_id))/
+(select sum(nb_total) from rpt_testset where id in (select testset_id from rpt_testscope) 
+and testsuite_id= new.testsuite_id) 
+where rpt_summary.release_id= new.release_id 
+and rpt_summary.testsuite_id= new.testsuite_id 
+and update_date=(select max(update_date) from rpt_dailystatistics where rpt_dailystatistics.release_id= new.release_id 
+and rpt_dailystatistics.scope_id= new.id);
+END
+
+===================================
+rpt_testscope_after_delete
+
+BEGIN
+delete from rpt_summary where release_id= old.release_id and 
+testsuite_id= old.testsuite_id and 
+testsuite_id not in (select testsuite_id from rpt_testscope where release_id= old.release_id);
+
+update rpt_summary set complete_ratio=
+(select (sum(nb_fail)+sum(nb_noneed)+sum(nb_pass)) 
+from rpt_dailystatistics inner join rpt_testscope 
+on rpt_dailystatistics.scope_id=rpt_testscope.id 
+where rpt_dailystatistics.release_id= old.release_id 
+and rpt_dailystatistics.testset_id in (select testset_id from rpt_testscope where testsuite_id= old.testsuite_id))/
+(select sum(nb_total) from rpt_testset where 
+id in (select testset_id from rpt_testscope where testsuite_id= old.testsuite_id)) 
+where rpt_summary.release_id= old.release_id and rpt_summary.testsuite_id= old.testsuite_id 
+and testsuite_id in (select testsuite_id from rpt_testscope where release_id= old.release_id);
+END
+===================================
