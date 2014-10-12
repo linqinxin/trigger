@@ -1,0 +1,9 @@
+select summary.complete_ratio,summary.risk,summary.`comment`,summary.update_date, 
+rpt_release.id releaseId,rpt_release.description releaseName,
+rpt_testsuite.id suiteId,rpt_testsuite.description suiteName,
+rpt_testset.id setId,rpt_testset.exchange,rpt_testset.region 
+from rpt_summary as summary
+inner join rpt_release on rpt_release.id=summary.release_id
+inner join rpt_testsuite on rpt_testsuite.id=summary.testsuite_id
+inner join rpt_testscope on rpt_testscope.testsuite_id=summary.testsuite_id
+inner join rpt_testset on rpt_testset.id=rpt_testscope.testset_id
