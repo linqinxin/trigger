@@ -1,0 +1,10 @@
+set the default
+
+  update rpt_release set defaultId=2;
+----------------------------------------
+select defaultId
+
+   select id from rpt_release where id=defaultId;
+----------------------------------------
+
+
